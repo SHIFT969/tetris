@@ -10,6 +10,12 @@ public class Piece : MonoBehaviour
     public TetrominoData tetrominoData { get; private set; }
     public Vector3Int[] cells { get; private set; }
     public int rotationIndex { get; private set; }
+    
+    public float stepDelay = 1f;
+    public float lockDelay = 0.5f;
+    
+    public float stepTime;
+    public float lockTime;
 
     public void Initialize(Board board, Vector3Int position, TetrominoData tetrominoData)
     {
@@ -17,6 +23,8 @@ public class Piece : MonoBehaviour
         this.position = position;
         this.tetrominoData = tetrominoData;
         this.rotationIndex = 0;
+        this.stepTime = Time.time + this.stepDelay;
+        this.lockTime = 0;
 
         if (this.cells == null)
         {
@@ -29,6 +37,8 @@ public class Piece : MonoBehaviour
     private void Update()
     {
         this.board.Clear(this);
+
+        this.lockTime += Time.deltaTime;
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
@@ -57,7 +67,30 @@ public class Piece : MonoBehaviour
             HardDrop();
         }
 
+        if (Time.time > this.stepTime)
+        {
+            Step();
+        }
+
         this.board.Set(this);
+    }
+
+    private void Step()
+    {
+        this.stepTime = Time.time + this.stepDelay;
+
+        Move(Vector2Int.down);
+
+        if (this.lockTime >= this.lockDelay)
+        {
+            Lock();
+        }
+    }
+
+    private void Lock()
+    {
+        this.board.Set(this);
+        this.board.SpawnPiece();
     }
 
     private void HardDrop()
@@ -66,6 +99,8 @@ public class Piece : MonoBehaviour
         {
             continue;
         }
+
+        Lock();
     }
 
     private bool Move(Vector2Int transition)
@@ -79,6 +114,7 @@ public class Piece : MonoBehaviour
         if (valid)
         {
             this.position = newPosition;
+            this.lockTime = 0f;
         }
 
         return valid;
@@ -86,8 +122,19 @@ public class Piece : MonoBehaviour
 
     private void Rotate(int direction)
     {
+        var originalRotation = this.rotationIndex;
         this.rotationIndex += Wrap(this.rotationIndex + direction, 0, 4);
+        ApplyRotationMatrix(direction);
 
+        if (!TestWallKicks(this.rotationIndex, direction))
+        {
+            this.rotationIndex = originalRotation;
+            ApplyRotationMatrix(-direction);
+        }
+    }
+
+    private void ApplyRotationMatrix(int direction)
+    {
         for (int i = 0; i < cells.Length; i++)
         {
             Vector3 cell = this.cells[i];
@@ -99,8 +146,8 @@ public class Piece : MonoBehaviour
                 case Tetromino.O:
                     cell.x -= 0.5f;
                     cell.y -= 0.5f;
-                    x = Mathf.RoundToInt(cell.x * Data.RotationMatrix[0] * direction + cell.y * Data.RotationMatrix[1] * direction);
-                    y = Mathf.RoundToInt(cell.x * Data.RotationMatrix[2] * direction + cell.y * Data.RotationMatrix[3] * direction);
+                    x = Mathf.CeilToInt(cell.x * Data.RotationMatrix[0] * direction + cell.y * Data.RotationMatrix[1] * direction);
+                    y = Mathf.CeilToInt(cell.x * Data.RotationMatrix[2] * direction + cell.y * Data.RotationMatrix[3] * direction);
                     break;
                 default:
                     x = Mathf.RoundToInt(cell.x * Data.RotationMatrix[0] * direction + cell.y * Data.RotationMatrix[1] * direction);
@@ -110,6 +157,35 @@ public class Piece : MonoBehaviour
 
             this.cells[i] = new Vector3Int(x, y, 0);
         }
+    }
+
+    private bool TestWallKicks(int rotationIndex, int rotattionDirection)
+    {
+        var wallKickIndex = GetWallKickIndex(rotationIndex, rotattionDirection);
+
+        for (int i = 0; i < this.tetrominoData.wallKicks.GetLength(1); i++)
+        {
+            var transition = this.tetrominoData.wallKicks[wallKickIndex, i];
+
+            if (Move(transition))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int GetWallKickIndex(int rotationIndex, int rotattionDirection)
+    {
+        var wallKickIndex = rotationIndex * 2;
+
+        if (rotattionDirection < 0)
+        {
+            wallKickIndex--;
+        }
+
+        return Wrap(wallKickIndex, 0, this.tetrominoData.wallKicks.GetLength(0));
     }
 
     private int Wrap(int input, int min, int max)

@@ -32,7 +32,7 @@ public class Board : MonoBehaviour
         SpawnPiece();
     }
 
-    private void SpawnPiece()
+    public void SpawnPiece()
     {
         var random = Random.Range(0, tetrominos.Length);
         var data = tetrominos[random];
