@@ -38,7 +38,18 @@ public class Board : MonoBehaviour
         var data = tetrominos[random];
 
         this.activePiece.Initialize(this, this.spawnPosition, data);
+
+        if (!IsValidPosition(this.activePiece, this.spawnPosition))
+        {
+            GameOver();
+        }
+
         Set(activePiece);
+    }
+
+    private void GameOver()
+    {
+        this.tilemap.ClearAllTiles();   
     }
 
     public void Set(Piece piece)
@@ -73,5 +84,59 @@ public class Board : MonoBehaviour
         }
 
         return true;
+    }
+
+    public void ClearLines()
+    {
+        var row = this.bounds.yMin;
+
+        while (row < this.bounds.yMax)
+        {
+            if (IsLineFull(row))
+            {
+                LineClear(row);
+            }
+            else
+            {
+                row++;
+            }
+        }
+    }
+
+    private bool IsLineFull( int row)
+    {
+        for (int col = this.bounds.xMin; col < this.bounds.xMax; col++)
+        {
+            var postition = new Vector3Int(col, row, 0);
+
+            if (!this.tilemap.HasTile(postition))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void LineClear(int row)
+    {
+        for (int col = this.bounds.xMin; col < this.bounds.xMax; col++)
+        {
+            var postition = new Vector3Int(col, row, 0);
+            this.tilemap.SetTile(postition, null);
+        }
+
+        while (row < bounds.yMax)
+        {
+            for (int col = this.bounds.xMin; col < bounds.xMax; col++)
+            {
+                var postition = new Vector3Int(col, row + 1, 0);
+                var tileAbove = this.tilemap.GetTile(postition);
+                postition = new Vector3Int(col, row, 0);
+                this.tilemap.SetTile(postition, tileAbove);
+            }
+
+            row++;
+        }
     }
 }
