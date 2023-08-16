@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -8,7 +9,9 @@ public class Board : MonoBehaviour
     public TetrominoData[] tetrominos;
     public Vector3Int spawnPosition;
     public Vector2Int boardSize = new Vector2Int(10, 20);
+    public TextMeshProUGUI scoreboard;
     public readonly RectInt bounds;
+    public int score { get; private set; }
 
     public Board()
     {
@@ -20,6 +23,7 @@ public class Board : MonoBehaviour
     {
         this.tilemap = GetComponentInChildren<Tilemap>();
         this.activePiece = GetComponentInChildren<Piece>();
+        this.score = 0;
 
         for (int i = 0; i < tetrominos.Length; i++)
         {
@@ -50,6 +54,7 @@ public class Board : MonoBehaviour
     private void GameOver()
     {
         this.tilemap.ClearAllTiles();   
+        this.score = 0;
     }
 
     public void Set(Piece piece)
@@ -89,18 +94,23 @@ public class Board : MonoBehaviour
     public void ClearLines()
     {
         var row = this.bounds.yMin;
+        var clearedLines = 0;
 
         while (row < this.bounds.yMax)
         {
             if (IsLineFull(row))
             {
                 LineClear(row);
+                clearedLines++;
             }
             else
             {
                 row++;
             }
         }
+
+        this.score += 10 * clearedLines;
+        this.scoreboard.text = $"Score: {this.score}";
     }
 
     private bool IsLineFull( int row)
