@@ -9,7 +9,7 @@ public class Board : MonoBehaviour
     public TetrominoData[] tetrominos;
     public Vector3Int spawnPosition;
     public Vector2Int boardSize = new Vector2Int(10, 20);
-    public TextMeshProUGUI scoreboard;
+    public TextMesh scoreboard;
     public readonly RectInt bounds;
     public int score { get; private set; }
 
@@ -46,6 +46,7 @@ public class Board : MonoBehaviour
         if (!IsValidPosition(this.activePiece, this.spawnPosition))
         {
             GameOver();
+            return;
         }
 
         Set(activePiece);
@@ -53,8 +54,10 @@ public class Board : MonoBehaviour
 
     private void GameOver()
     {
-        this.tilemap.ClearAllTiles();   
+        this.tilemap.ClearAllTiles();
+        this.activePiece.stepDelay = 1;
         this.score = 0;
+        this.scoreboard.text = $"Score: {this.score}";
     }
 
     public void Set(Piece piece)
@@ -111,6 +114,7 @@ public class Board : MonoBehaviour
 
         this.score += 10 * clearedLines;
         this.scoreboard.text = $"Score: {this.score}";
+        this.activePiece.stepDelay = 1f - score / 1000f;
     }
 
     private bool IsLineFull( int row)
